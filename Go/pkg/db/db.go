@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "modernc.org/sqlite"
 )
@@ -19,12 +20,11 @@ func Init(dbFile string) error {
 	var err error
 	DB, err = sql.Open("sqlite", dbFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("error in opening db: %w", err)
 	}
 
 	if _, err := DB.Exec(schema); err != nil {
-		return err
+		return fmt.Errorf("error in executing query: %w", err)
 	}
-
 	return nil
 }

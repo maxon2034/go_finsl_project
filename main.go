@@ -5,10 +5,12 @@ import (
 	"go_finsl_project/Go/pkg/api"
 	"go_finsl_project/Go/pkg/db"
 	"go_finsl_project/Go/pkg/server"
+	"log"
 )
 
 func main() {
 	err := db.Init("scheduler.db")
+	defer db.DB.Close()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -16,7 +18,7 @@ func main() {
 	api.Init()
 	err = server.ServerStart()
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
 }

@@ -19,7 +19,7 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		addTaskHandler(w, r)
 	default:
-		writeJson(w, map[string]string{"error": ("Wrong HTTP method used")})
+		writeJson(w, map[string]string{"error": ("Wrong HTTP method used")}, 405)
 		return
 	}
 }
@@ -28,12 +28,12 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeJson(w, map[string]string{"error": ("JSON serializing error: " + fmt.Sprint(err))})
+		writeJson(w, map[string]string{"error": ("JSON serializing error: " + fmt.Sprint(err))}, http.StatusBadRequest)
 		return
 	}
 
 	if task.Title == "" {
-		writeJson(w, map[string]string{"error": "No title"})
+		writeJson(w, map[string]string{"error": "No title"}, http.StatusBadRequest)
 		return
 	}
 
@@ -44,7 +44,7 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	taskTime, err := time.Parse(Format, task.Date)
 	if err != nil {
-		writeJson(w, map[string]string{"error": "Error in parsing, wrong format: " + err.Error()})
+		writeJson(w, map[string]string{"error": "Error in parsing, wrong format: " + err.Error()}, http.StatusBadRequest)
 		return
 	}
 
@@ -54,7 +54,7 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			next, err := NextDate(now, task.Date, task.Repeat)
 			if err != nil {
-				writeJson(w, map[string]string{"error": "Error in forming next date: " + err.Error()})
+				writeJson(w, map[string]string{"error": "Error in forming next date: " + err.Error()}, http.StatusBadRequest)
 				return
 			}
 			task.Date = next
@@ -63,7 +63,7 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 		if task.Repeat != "" {
 			_, err := NextDate(now, task.Date, task.Repeat)
 			if err != nil {
-				writeJson(w, map[string]string{"error": "Error in forming next date: " + err.Error()})
+				writeJson(w, map[string]string{"error": "Error in forming next date: " + err.Error()}, http.StatusBadRequest)
 				return
 			}
 		}
@@ -71,11 +71,11 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	id, err := db.AddTask(task)
 	if err != nil {
-		writeJson(w, map[string]string{"error": "Error in adding into db" + err.Error()})
+		writeJson(w, map[string]string{"error": "Error in adding into db" + err.Error()}, http.StatusBadRequest)
 		return
 	}
 
-	writeJson(w, map[string]string{"id": fmt.Sprint(id)})
+	writeJson(w, map[string]string{"id": fmt.Sprint(id)}, http.StatusOK)
 }
 
 func getTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -84,33 +84,33 @@ func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := query.Get("id")
 	task, err := db.GetTask(id)
 	if err != nil {
-		writeJson(w, map[string]string{"error": "Error in getting task: " + err.Error()})
+		writeJson(w, map[string]string{"error": "Error in getting task: " + err.Error()}, http.StatusBadRequest)
 		return
 	}
-	writeJson(w, task)
+	writeJson(w, task, http.StatusOK)
 }
 
 func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeJson(w, map[string]string{"error": "JSON decoding error"})
+		writeJson(w, map[string]string{"error": "JSON decoding error"}, http.StatusBadRequest)
 		return
 	}
 
 	if task.ID == "" {
-		writeJson(w, map[string]string{"error": "No param id in query"})
+		writeJson(w, map[string]string{"error": "No param id in query"}, http.StatusBadRequest)
 		return
 	}
 
 	if task.Title == "" {
-		writeJson(w, map[string]string{"error": "No title"})
+		writeJson(w, map[string]string{"error": "No title"}, http.StatusBadRequest)
 		return
 	}
 
 	now := time.Now().Truncate(24 * time.Hour)
 	taskTime, err := time.Parse(Format, task.Date)
 	if err != nil {
-		writeJson(w, map[string]string{"error": "Invalid date format"})
+		writeJson(w, map[string]string{"error": "Invalid date format"}, http.StatusBadRequest)
 		return
 	}
 
@@ -120,7 +120,7 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			next, err := NextDate(now, task.Date, task.Repeat)
 			if err != nil {
-				writeJson(w, map[string]string{"error": err.Error()})
+				writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 				return
 			}
 			task.Date = next
@@ -128,18 +128,18 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	} else if task.Repeat != "" {
 		_, err := NextDate(now, task.Date, task.Repeat)
 		if err != nil {
-			writeJson(w, map[string]string{"error": err.Error()})
+			writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 			return
 		}
 	}
 
 	err = db.UpdateTask(&task)
 	if err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
-	writeJson(w, map[string]any{})
+	writeJson(w, map[string]any{}, http.StatusOK)
 }
 
 func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -148,10 +148,10 @@ func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := query.Get("id")
 	err := db.DeleteTask(id)
 	if err != nil {
-		writeJson(w, map[string]string{"error": "Error in deleting task: " + err.Error()})
+		writeJson(w, map[string]string{"error": "Error in deleting task: " + err.Error()}, http.StatusBadRequest)
 		return
 	}
-	writeJson(w, map[string]any{})
+	writeJson(w, map[string]any{}, http.StatusOK)
 }
 
 func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -160,21 +160,21 @@ func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := query.Get("id")
 	task, err := db.GetTask(id)
 	if err != nil {
-		writeJson(w, map[string]string{"error": "Error in getting task: " + err.Error()})
+		writeJson(w, map[string]string{"error": "Error in getting task: " + err.Error()}, http.StatusBadRequest)
 		return
 	}
 	if task.Repeat == "" {
 		err := db.DeleteTask(task.ID)
 		if err != nil {
-			writeJson(w, map[string]string{"error": "Error in deleting task: " + err.Error()})
+			writeJson(w, map[string]string{"error": "Error in deleting task: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
 	}
 	task.Date, err = NextDate(time.Now(), task.Date, task.Repeat)
 	if err != nil {
-		writeJson(w, map[string]string{"error": "Error in forming next date: " + err.Error()})
+		writeJson(w, map[string]string{"error": "Error in forming next date: " + err.Error()}, http.StatusBadRequest)
 		return
 	}
 	err = db.UpdateDate(task)
-	writeJson(w, map[string]any{})
+	writeJson(w, map[string]any{}, http.StatusOK)
 }

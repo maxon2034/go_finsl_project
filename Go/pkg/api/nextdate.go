@@ -21,7 +21,7 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 
 	dstartParse, err := time.Parse(Format, dstart)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error in parsing date start: %w", err)
 	}
 
 	switch {
@@ -42,7 +42,7 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 
 		dayNum, err := strconv.Atoi(repeatSplit[1])
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error in converting day number: %w", err)
 		}
 		if dayNum > 400 {
 			return "", fmt.Errorf("Wrong day number")
