@@ -6,7 +6,7 @@ import (
 
 func ServerStart() error {
 
-	webDir := "C:/Users/artem/DevGO/go_finsl_project/web"
+	webDir := "./web"
 	fileServer := http.FileServer(http.Dir(webDir))
 
 	http.Handle("/", fileServer)
